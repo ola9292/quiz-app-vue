@@ -71,6 +71,10 @@ onMounted(() => {
         
             <div v-if="stage == 2">
                 <p>Score {{ questionScoreCount }}/{{ quizList.length }}</p>
+                <div v-for="quiz in quizList">
+                    <h4 v-html="quiz.question"></h4>
+                    <p v-html="quiz.correctAnswer"></p>
+                </div>
                 <button class="btn" @click="goHome">Start Again</button>
             </div>
 
