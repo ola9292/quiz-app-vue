@@ -1,34 +1,10 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
 const stage = ref(1)
 const currentQuestionIndex = ref(0)
 const questionScoreCount = ref(0)
-const quizList = ref([
-    {
-        question: "What is the capital of France?",
-        options: ["Berlin", "Madrid", "Paris", "Rome"],
-        correctAnswer: "Paris",
-        selectedAnswer: null
-    },
-    {
-        question: "Which planet is known as the Red Planet?",
-        options: ["Earth", "Mars", "Jupiter", "Venus"],
-        correctAnswer: "Mars",
-        selectedAnswer: null
-    },
-    {
-        question: "What is the largest ocean on Earth?",
-        options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
-        correctAnswer: "Pacific Ocean",
-        selectedAnswer: null
-    },
-    {
-        question: "Who wrote 'Romeo and Juliet'?",
-        options: ["William Shakespeare", "Charles Dickens", "Jane Austen", "Mark Twain"],
-        correctAnswer: "William Shakespeare",
-        selectedAnswer: null
-    }
-]);
+const quizList = ref([]);
 
 const chooseOption = (option) => {
     quizList.value[currentQuestionIndex.value].selectedAnswer = option
@@ -53,30 +29,66 @@ const submit = () => {
     //console.log(questionScoreCount.value)
     stage.value = 2
 }
+onMounted(() => {
+    const fetchQuizData = async () => {
+      try {
+        const response = await fetch('https://opentdb.com/api.php?amount=10&type=multiple');
+        const data = await response.json();
+         
+        quizList.value = data.results.map((item) => ({
+          question: item.question,
+          options: [...item.incorrect_answers, item.correct_answer].sort(() => Math.random() - 0.5),
+          correctAnswer: item.correct_answer,
+          selectedAnswer: null, // Initialize to track user's selection
+        }));
+        // console.log(quizList.value);
+      } catch (error) {
+        console.error('Error fetching quiz data:', error);
+      }
+    };
+    fetchQuizData()
+})
 </script>
 
 <template>
     <div class="container">
         <header>
-            <h2>Quiz App</h2>
+            <h2>Quiz App</h2><span>Question: {{ currentQuestionIndex + 1 }}</span>
         </header>
-        
-        <div v-if="stage == 1">
-            <p>{{ quizList[currentQuestionIndex].question }}</p>
-            <div v-for="(option, index) in quizList[currentQuestionIndex].options">
-                <div :key="index" @click="chooseOption(option)" :class="quizList[currentQuestionIndex].selectedAnswer == option ? 'selected' : 'list'">{{ option }}</div>
+
+        <div v-if="quizList.length > 0">
+         
+            <div class="question-container" v-if="stage == 1">
+                <p v-html="quizList[currentQuestionIndex].question"></p>
+                <div v-for="(option, index) in quizList[currentQuestionIndex].options" :key="index">
+                    <div
+                        @click="chooseOption(option)"
+                        :class="quizList[currentQuestionIndex].selectedAnswer == option ? 'selected' : 'list'"
+                        v-html="option">
+                    </div>
+                </div>
             </div>
-        </div>
-        <div v-if="stage == 2">
-            <p>Score {{ questionScoreCount }}/{{ quizList.length }}</p>
-            <button class="btn" @click="goHome">Start Again</button>
-        </div>
+        
+            <div v-if="stage == 2">
+                <p>Score {{ questionScoreCount }}/{{ quizList.length }}</p>
+                <button class="btn" @click="goHome">Start Again</button>
+            </div>
+
+        
         <div v-if="stage == 1">
             <button class="btn" @click="prev" :disabled="currentQuestionIndex == 0">Prev</button>
             <button class="btn" @click="next" :disabled="currentQuestionIndex == quizList.length - 1">Next</button>
             <button v-if="currentQuestionIndex == quizList.length - 1" class="btn" @click="submit">Submit</button>
         </div>
-    
+        </div>
+        <div v-else>
+            <div class="spinner">
+                <span class="loader"></span>
+            </div>
+            
+        </div>
+       
+   
     </div>
     
 </template>
@@ -120,5 +132,60 @@ header{
     color: #666666;
     cursor: not-allowed;
     border: 1px solid #aaaaaa;
+}
+/*
+  Enter and leave animations can use different
+  durations and timing functions.
+*/
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.8s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
+.loader {
+  width: 48px;
+  height: 48px;
+  display: inline-block;
+  position: relative;
+}
+.loader::after,
+.loader::before {
+  content: '';  
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #0d1a26;
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: animloader 2s linear infinite;
+}
+.loader::after {
+  animation-delay: 1s;
+}
+
+@keyframes animloader {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+} 
+.spinner{
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
 }
 </style>
